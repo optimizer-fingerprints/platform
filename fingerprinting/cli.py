@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import time
 from dataclasses import asdict
 from pathlib import Path
 
@@ -10,6 +9,14 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
+from .artifacts import (
+    DEFAULT_FINGERPRINT_DIR,
+    DEFAULT_INDEX_PATH,
+    DEFAULT_TRACE_DIR,
+    fingerprint_id,
+    rebuild_index,
+    write_fingerprint,
+)
 from .probes import FingerprintAccumulator, ProbeConfig, compare_fingerprints
 from .optimizers import available_optimizer_names, build_optimizer_entry
 from .worlds import WorldConfig, build_world
@@ -38,12 +45,19 @@ def parse_args() -> argparse.Namespace:
     )
     run.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     run.add_argument("--data-dir", type=Path, default=Path("data"))
-    run.add_argument("--output-dir", type=Path, default=Path("logs/fingerprints"))
+    run.add_argument("--fingerprint-dir", type=Path, default=DEFAULT_FINGERPRINT_DIR)
+    run.add_argument("--index-path", type=Path, default=DEFAULT_INDEX_PATH)
+    run.add_argument("--trace-dir", type=Path, default=DEFAULT_TRACE_DIR)
     run.add_argument("--num-workers", type=int, default=0)
+    run.add_argument("--no-index", action="store_true", help="Write the fingerprint but do not rebuild the web index")
 
     compare = subparsers.add_parser("compare", help="Compare two fingerprint.json files")
     compare.add_argument("left", type=Path)
     compare.add_argument("right", type=Path)
+
+    index = subparsers.add_parser("index", help="Rebuild the centralized web fingerprint index")
+    index.add_argument("--fingerprint-dir", type=Path, default=DEFAULT_FINGERPRINT_DIR)
+    index.add_argument("--index-path", type=Path, default=DEFAULT_INDEX_PATH)
 
     return parser.parse_args()
 
@@ -63,11 +77,6 @@ def run_command(args: argparse.Namespace) -> None:
         matrix_probe_interval=args.matrix_probe_interval,
         svd_max_dim=args.svd_max_dim,
     )
-    timestamp = int(time.time())
-    run_id = f"{world_config.world_id}_{args.optimizer}_seed{args.seed}_{timestamp}"
-    run_dir = args.output_dir / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-    trace_path = run_dir / "trace.jsonl"
 
     model, loader = build_world(world_config, device)
     optimizer, optimizer_entry = build_optimizer_entry(
@@ -75,14 +84,28 @@ def run_command(args: argparse.Namespace) -> None:
         args.optimizer,
         overrides=args.overrides,
     )
+    optimizer_payload = optimizer_entry.to_dict()
+    world_payload = {**asdict(world_config), "data_dir": str(world_config.data_dir)}
+    probe_payload = asdict(probe_config)
+    run_id = fingerprint_id(
+        world_id=world_config.world_id,
+        optimizer_name=optimizer_entry.name,
+        seed=args.seed,
+        probe=probe_payload,
+        optimizer=optimizer_payload,
+    )
+    trace_dir = args.trace_dir / world_config.world_id / optimizer_entry.name / run_id
+    trace_dir.mkdir(parents=True, exist_ok=True)
+    trace_path = trace_dir / "trace.jsonl"
     config_payload = {
         "run_id": run_id,
-        "world": {**asdict(world_config), "data_dir": str(world_config.data_dir)},
-        "optimizer": optimizer_entry.to_dict(),
-        "probe": asdict(probe_config),
+        "fingerprint_id": run_id,
+        "world": world_payload,
+        "optimizer": optimizer_payload,
+        "probe": probe_payload,
         "device": str(device),
     }
-    (run_dir / "config.json").write_text(json.dumps(config_payload, indent=2) + "\n")
+    (trace_dir / "config.json").write_text(json.dumps(config_payload, indent=2, sort_keys=True) + "\n")
 
     accumulator = FingerprintAccumulator(model=model, probe_config=probe_config, trace_path=trace_path)
     model.train()
@@ -109,18 +132,22 @@ def run_command(args: argparse.Namespace) -> None:
     fingerprint.update(
         {
             "run_id": run_id,
+            "fingerprint_id": run_id,
             "world": config_payload["world"],
             "optimizer": config_payload["optimizer"],
         }
     )
-    fingerprint_path = run_dir / "fingerprint.json"
-    fingerprint_path.write_text(json.dumps(fingerprint, indent=2) + "\n")
+    fingerprint_path = write_fingerprint(args.fingerprint_dir, fingerprint)
+    index_path = None
+    if not args.no_index:
+        rebuild_index(args.fingerprint_dir, args.index_path)
+        index_path = args.index_path
 
     print(
         json.dumps(
             {
-                "run_dir": str(run_dir),
                 "fingerprint": str(fingerprint_path),
+                "index": None if index_path is None else str(index_path),
                 "trace": str(trace_path),
             },
             indent=2,
@@ -134,12 +161,27 @@ def compare_command(args: argparse.Namespace) -> None:
     print(json.dumps(compare_fingerprints(left, right), indent=2))
 
 
+def index_command(args: argparse.Namespace) -> None:
+    index = rebuild_index(args.fingerprint_dir, args.index_path)
+    print(
+        json.dumps(
+            {
+                "index": str(args.index_path),
+                "fingerprint_count": len(index["fingerprints"]),
+            },
+            indent=2,
+        )
+    )
+
+
 def main() -> None:
     args = parse_args()
     if args.command == "run":
         run_command(args)
     elif args.command == "compare":
         compare_command(args)
+    elif args.command == "index":
+        index_command(args)
     else:
         raise ValueError(f"Unsupported command: {args.command}")
 

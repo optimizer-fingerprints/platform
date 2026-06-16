@@ -11,6 +11,7 @@ import yaml
 
 
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "optimizers"
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,7 @@ class OptimizerEntry:
             "hparams": copy.deepcopy(self.hparams),
             "param_groups": copy.deepcopy(self.param_groups),
             "metadata": copy.deepcopy(self.metadata),
-            "config_path": self.config_path,
+            "config_path": _display_path(Path(self.config_path)),
         }
 
     def build(self, model: nn.Module) -> OptimizerRuntime:
@@ -146,6 +147,13 @@ def _entry_from_payload(payload: dict[str, Any], path: Path) -> OptimizerEntry:
         metadata=copy.deepcopy(metadata),
         config_path=str(path),
     )
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def _parse_override(override: str) -> tuple[str, Any]:

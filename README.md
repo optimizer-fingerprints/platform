@@ -72,18 +72,28 @@ metadata:
 Each run writes:
 
 ```text
-logs/fingerprints/<run-id>/
+fingerprints/<world-id>/<optimizer>/<fingerprint-id>.json
+web/public/fingerprints.json
+logs/traces/<world-id>/<optimizer>/<fingerprint-id>/
   config.json
   trace.jsonl
-  fingerprint.json
 ```
+
+The `fingerprints/` files and `web/public/fingerprints.json` are intended to be
+committed. The trace files under `logs/` are local debugging artifacts.
 
 Compare two fingerprints:
 
 ```bash
 uv run python -m fingerprinting compare \
-  logs/fingerprints/<run-a>/fingerprint.json \
-  logs/fingerprints/<run-b>/fingerprint.json
+  fingerprints/<world-id>/<optimizer-a>/<fingerprint-a>.json \
+  fingerprints/<world-id>/<optimizer-b>/<fingerprint-b>.json
+```
+
+Rebuild the centralized web index from committed fingerprints:
+
+```bash
+uv run python -m fingerprinting index
 ```
 
 The v1 fingerprint contains direction, scale, trajectory, and matrix-structure
