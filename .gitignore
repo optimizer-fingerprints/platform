@@ -1,5 +1,62 @@
+
+
 __pycache__/
 *.py[cod]
 .venv/
 data/
 logs/
+
+
+web/node_modules/
+web/triage/
+web/.compiler/
+web/dist/
+web/temp/
+web/*.tsbuildinfo
+web/.DS_Store
+web/.vercel
+web/.netlify
+web/_site/
+web/.astro/
+web/scripts/smoke/*-main/
+web/scripts/memory/project/src/pages/
+web/benchmark/projects/
+web/benchmark/results/
+web/test-results/
+web/*.log
+web/package-lock.json
+web/.turbo/
+web/.eslintcache
+web/.pnpm-store
+web/.vscode-test/
+web/.claude
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+web/pnpm-debug.log*
+
+# do not commit .env files or any files that end with `.env`
+*.env
+
+web/packages/astro/src/**/*.prebuilt.ts
+web/packages/astro/src/**/*.prebuilt-dev.ts
+web/packages/astro/test/units/_temp-fixtures/*
+!packages/astro/test/units/_temp-fixtures/package.json
+web/packages/integrations/**/.netlify/
+
+# exclude IntelliJ/WebStorm stuff
+.idea
+
+# ignore content collection generated files
+web/packages/**/test/**/fixtures/**/.astro/
+web/packages/**/test/**/fixtures/**/env.d.ts
+web/packages/**/e2e/**/fixtures/**/.astro/
+web/packages/**/e2e/**/fixtures/**/env.d.ts
+web/examples/**/.astro/
+web/examples/**/env.d.ts
+
+# make it easy for people to add project-specific Astro settings that they don't
+# want to share with others (see
+# https://github.com/withastro/astro/pull/11759#discussion_r1721444711)
+web/*.code-workspace
+web/packages/astro/e2e/fixtures/cloudflare/.wrangler/deploy/config.json
