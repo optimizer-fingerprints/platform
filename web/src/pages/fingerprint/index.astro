@@ -1,22 +1,556 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { fingerprintSnapshotCount, fingerprintTaskId, formatNumber, loadFingerprints } from '../../lib/data';
+
+const fingerprints = loadFingerprints().map((entry) => ({
+	entry: {
+		fingerprint_id: entry.fingerprint_id,
+		optimizer: entry.optimizer,
+		optimizer_family: entry.optimizer_family,
+		seed: entry.seed,
+		task_id: fingerprintTaskId(entry),
+		snapshot_count: fingerprintSnapshotCount(entry),
+		path: entry.path,
+	},
+	full: entry.full,
+}));
+
 ---
 
 <Layout title="Fingerprint">
-	<section class="pane-shell" aria-label="Fingerprint workspace">
-		<div class="pane-frame">
-			<div class="pane-inner">
-				<div class="graph-panel"></div>
-			</div>
-		</div>
-
-		<div class="pane-frame">
-			<div class="pane-inner">
-				<div class="pane-grid">
-					<div class="pane"></div>
-					<div class="pane"></div>
+	<section class="fingerprint-shell" aria-label="Fingerprint workspace" data-fingerprint-root>
+		{
+			fingerprints.length === 0 ? (
+				<div class="empty">
+					No current-schema fingerprints are available. Regenerate fingerprints with the current
+					<code>optimizer_fingerprint</code> schema and rebuild <code>web/public/fingerprints.json</code>.
 				</div>
-			</div>
-		</div>
+			) : (
+				<>
+					<div class="pane-frame">
+						<div class="pane-inner">
+							<div class="fingerprint-toolbar">
+								<div class="field">
+									<label for="fingerprint-select">Fingerprint</label>
+									<select id="fingerprint-select" data-fingerprint-select>
+										{fingerprints.map(({ entry, full }, index) => (
+											<option value={String(index)}>
+												{full.optimizer.name} / {full.task.id} / seed {full.task.seed} / {full.snapshots.length} snapshots
+											</option>
+										))}
+									</select>
+								</div>
+								<div class="field">
+									<label for="metric-select">Metric</label>
+									<select id="metric-select" data-metric-select></select>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="pane-frame">
+						<div class="pane-inner">
+							<div class="fingerprint-hero">
+								<div>
+									<p class="page-kicker" data-task-kicker>optimizer fingerprint</p>
+									<h1 class="fingerprint-title mono" data-fingerprint-title>n/a</h1>
+								</div>
+								<dl class="fingerprint-facts">
+									<div>
+										<dt>run</dt>
+										<dd class="mono" data-run-id>n/a</dd>
+									</div>
+									<div>
+										<dt>artifact</dt>
+										<dd class="mono" data-artifact-path>n/a</dd>
+									</div>
+								</dl>
+							</div>
+							<div class="stat-grid fingerprint-stats">
+								<div class="stat">
+									<div class="stat-label">Final step</div>
+									<div class="stat-value num" data-final-step>{formatNumber(0)}</div>
+								</div>
+								<div class="stat">
+									<div class="stat-label">Loss</div>
+									<div class="stat-value num" data-final-loss>n/a</div>
+								</div>
+								<div class="stat">
+									<div class="stat-label">Directness</div>
+									<div class="stat-value num" data-final-directness>n/a</div>
+								</div>
+								<div class="stat">
+									<div class="stat-label">Path length</div>
+									<div class="stat-value num" data-final-path>n/a</div>
+								</div>
+								<div class="stat">
+									<div class="stat-label">Displacement</div>
+									<div class="stat-value num" data-final-displacement>n/a</div>
+								</div>
+								<div class="stat">
+									<div class="stat-label">Update / grad</div>
+									<div class="stat-value num" data-final-ratio>n/a</div>
+								</div>
+								<div class="stat">
+									<div class="stat-label">Snapshots</div>
+									<div class="stat-value num" data-snapshot-count>0</div>
+								</div>
+								<div class="stat">
+									<div class="stat-label">Metrics</div>
+									<div class="stat-value num" data-metric-count>0</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="pane-frame">
+						<div class="pane-inner">
+							<section class="fingerprint-section">
+								<h2 class="section-title">Metric trace <span data-chart-caption></span></h2>
+								<div class="trace-panel">
+									<svg class="trace-chart" viewBox="0 0 720 260" role="img" data-chart>
+										<line x1="54" y1="20" x2="54" y2="218" class="chart-axis"></line>
+										<line x1="54" y1="218" x2="700" y2="218" class="chart-axis"></line>
+										<path data-chart-path class="chart-line"></path>
+										<g data-chart-points></g>
+										<text x="54" y="244" class="chart-label" data-chart-min-step></text>
+										<text x="700" y="244" text-anchor="end" class="chart-label" data-chart-max-step></text>
+										<text x="8" y="26" class="chart-label" data-chart-max-value></text>
+										<text x="8" y="221" class="chart-label" data-chart-min-value></text>
+									</svg>
+									<div class="chart-empty" data-chart-empty hidden>Selected metric has no numeric values.</div>
+								</div>
+							</section>
+						</div>
+					</div>
+
+					<div class="pane-frame">
+						<div class="pane-inner">
+							<div class="metadata-grid">
+								<section class="fingerprint-section">
+									<h2 class="section-title">Task</h2>
+									<dl class="metadata-list" data-task-meta></dl>
+								</section>
+								<section class="fingerprint-section">
+									<h2 class="section-title">Model</h2>
+									<dl class="metadata-list" data-model-meta></dl>
+								</section>
+								<section class="fingerprint-section">
+									<h2 class="section-title">Optimizer</h2>
+									<dl class="metadata-list" data-optimizer-meta></dl>
+								</section>
+							</div>
+						</div>
+					</div>
+
+					<div class="pane-frame">
+						<div class="pane-inner">
+							<section class="fingerprint-section">
+								<h2 class="section-title">Snapshots <span>schema metric order</span></h2>
+								<div class="table-wrap">
+									<table class="snapshot-table">
+										<thead data-snapshot-head></thead>
+										<tbody data-snapshot-body></tbody>
+									</table>
+								</div>
+							</section>
+						</div>
+					</div>
+
+					<div class="pane-frame">
+						<div class="pane-inner">
+							<details>
+								<summary>Raw fingerprint JSON</summary>
+								<pre data-raw-json></pre>
+							</details>
+						</div>
+					</div>
+				</>
+			)
+		}
+
 	</section>
 </Layout>
+
+<style is:global>
+	.fingerprint-shell {
+		box-sizing: border-box;
+		display: grid;
+		gap: 16px;
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		padding: 10px 28px 0;
+	}
+
+	.fingerprint-shell *,
+	.fingerprint-shell *::before,
+	.fingerprint-shell *::after {
+		box-sizing: border-box;
+	}
+
+	.fingerprint-shell .pane-frame,
+	.fingerprint-shell .pane-inner,
+	.fingerprint-section,
+	.fingerprint-shell .table-wrap {
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	.fingerprint-shell .pane-frame {
+		overflow: hidden;
+	}
+
+	.fingerprint-shell .empty,
+	.fingerprint-shell code,
+	.fingerprint-shell pre {
+		overflow-wrap: anywhere;
+	}
+
+	.fingerprint-toolbar {
+		display: grid;
+		grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.6fr);
+		gap: 14px;
+	}
+
+	.fingerprint-toolbar > .field {
+		min-width: 0;
+	}
+
+	.fingerprint-hero {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(260px, 0.55fr);
+		gap: 24px;
+		align-items: end;
+		padding-bottom: 18px;
+	}
+
+	.fingerprint-title {
+		margin: 0;
+		overflow-wrap: anywhere;
+		font-size: clamp(24px, 4vw, 44px);
+		font-weight: 500;
+		line-height: 1;
+		letter-spacing: 0;
+	}
+
+	.fingerprint-facts,
+	.metadata-list {
+		margin: 0;
+		font-family: var(--sans);
+	}
+
+	.fingerprint-facts {
+		display: grid;
+		gap: 10px;
+	}
+
+	.fingerprint-facts div,
+	.metadata-list div {
+		min-width: 0;
+		border-top: 1px solid var(--line);
+		padding-top: 8px;
+	}
+
+	.fingerprint-facts dt,
+	.metadata-list dt {
+		margin: 0 0 4px;
+		color: var(--muted);
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	.fingerprint-facts dd,
+	.metadata-list dd {
+		margin: 0;
+		overflow-wrap: anywhere;
+		font-size: 12px;
+	}
+
+	.fingerprint-stats {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+
+	.fingerprint-section {
+		position: relative;
+	}
+
+	.trace-panel {
+		position: relative;
+		min-height: 300px;
+		border: 1px solid var(--line);
+		background:
+			linear-gradient(var(--line) 1px, transparent 1px),
+			linear-gradient(90deg, var(--line) 1px, transparent 1px),
+			var(--paper);
+		background-size: 48px 48px;
+	}
+
+	.trace-chart {
+		display: block;
+		width: 100%;
+		min-height: 300px;
+	}
+
+	.chart-axis {
+		stroke: var(--line-strong);
+		stroke-width: 1;
+	}
+
+	.chart-line {
+		fill: none;
+		stroke: var(--accent);
+		stroke-width: 2;
+	}
+
+	.chart-point {
+		fill: var(--accent);
+	}
+
+	.chart-label {
+		fill: var(--muted);
+		font-family: var(--mono);
+		font-size: 10px;
+	}
+
+	.chart-empty {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		color: var(--muted);
+		font-family: var(--sans);
+	}
+
+	.metadata-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 18px;
+	}
+
+	.metadata-list {
+		display: grid;
+		gap: 10px;
+	}
+
+	.snapshot-table {
+		min-width: 980px;
+	}
+
+	@media (max-width: 760px) {
+		.fingerprint-shell {
+			padding-inline: 16px;
+		}
+
+		.fingerprint-toolbar,
+		.fingerprint-hero,
+		.metadata-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.fingerprint-stats {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (max-width: 480px) {
+		.fingerprint-stats {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+
+<script define:vars={{ fingerprints }}>
+	const root = document.querySelector('[data-fingerprint-root]');
+	const fingerprintSelect = root?.querySelector('[data-fingerprint-select]');
+	const metricSelect = root?.querySelector('[data-metric-select]');
+	const chart = root?.querySelector('[data-chart]');
+	const chartPath = root?.querySelector('[data-chart-path]');
+	const chartPoints = root?.querySelector('[data-chart-points]');
+	const chartEmpty = root?.querySelector('[data-chart-empty]');
+
+	const format = (value) => {
+		if (!Number.isFinite(value)) return 'n/a';
+		const abs = Math.abs(value);
+		if (abs !== 0 && (abs < 0.001 || abs >= 10000)) return value.toExponential(3);
+		return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
+	};
+
+	const metricLabel = (name) => name.replaceAll('_', ' ');
+	const metricGroup = (name) => {
+		if (['loss', 'grad_norm', 'update_norm', 'theta_norm'].includes(name)) return 'training';
+		if (['path_length', 'displacement', 'directness', 'cosine_from_initial', 'cosine_from_previous_snapshot'].includes(name)) return 'trajectory';
+		if (name.startsWith('matrix_')) return 'matrix';
+		return 'direction / scale';
+	};
+	const jsonValue = (value) => {
+		if (Array.isArray(value)) return `[${value.map(jsonValue).join(', ')}]`;
+		if (value && typeof value === 'object') return JSON.stringify(value);
+		return String(value);
+	};
+
+	function selectedFingerprint() {
+		return fingerprints[Number(fingerprintSelect?.value ?? 0)];
+	}
+
+	function setText(selector, value) {
+		const element = root?.querySelector(selector);
+		if (element) element.textContent = value;
+	}
+
+	function rowsForObject(value) {
+		return Object.entries(value).map(([key, item]) => {
+			const div = document.createElement('div');
+			const dt = document.createElement('dt');
+			const dd = document.createElement('dd');
+			dt.textContent = metricLabel(key);
+			dd.textContent = jsonValue(item);
+			if (typeof item === 'number') dd.className = 'num';
+			div.append(dt, dd);
+			return div;
+		});
+	}
+
+	function renderMetadata(fingerprint) {
+		root.querySelector('[data-task-meta]')?.replaceChildren(...rowsForObject(fingerprint.task));
+		root.querySelector('[data-model-meta]')?.replaceChildren(...rowsForObject(fingerprint.model));
+		root.querySelector('[data-optimizer-meta]')?.replaceChildren(...rowsForObject(fingerprint.optimizer));
+	}
+
+	function renderMetricOptions(fingerprint) {
+		const previous = metricSelect?.value;
+		const groups = new Map();
+		for (const metric of fingerprint.metric_names) {
+			const group = metricGroup(metric);
+			groups.set(group, [...(groups.get(group) ?? []), metric]);
+		}
+		metricSelect?.replaceChildren(
+			...[...groups.entries()].map(([label, metrics]) => {
+				const group = document.createElement('optgroup');
+				group.label = label;
+				group.append(
+					...metrics.map((metric) => {
+						const option = document.createElement('option');
+						option.value = metric;
+						option.textContent = metricLabel(metric);
+						return option;
+					}),
+				);
+				return group;
+			}),
+		);
+		if (previous && fingerprint.metric_names.includes(previous)) {
+			metricSelect.value = previous;
+		} else {
+			metricSelect.value = fingerprint.metric_names.includes('loss') ? 'loss' : fingerprint.metric_names[0];
+		}
+	}
+
+	function renderChart(fingerprint) {
+		const metric = metricSelect?.value;
+		const values = fingerprint.snapshots
+			.map((snapshot) => ({ step: snapshot.step, value: snapshot.metrics[metric] }))
+			.filter((point) => Number.isFinite(point.value));
+		setText('[data-chart-caption]', metric ? metricLabel(metric) : '');
+		if (!chartPath || !chartPoints || !chartEmpty || values.length === 0) {
+			if (chartEmpty) chartEmpty.hidden = false;
+			if (chartPath) chartPath.setAttribute('d', '');
+			chartPoints?.replaceChildren();
+			return;
+		}
+
+		chartEmpty.hidden = true;
+		const minStep = Math.min(...values.map((point) => point.step));
+		const maxStep = Math.max(...values.map((point) => point.step));
+		const minValue = Math.min(...values.map((point) => point.value));
+		const maxValue = Math.max(...values.map((point) => point.value));
+		const stepSpan = Math.max(maxStep - minStep, 1);
+		const valueSpan = Math.max(maxValue - minValue, 1e-20);
+		const x = (step) => 54 + ((step - minStep) / stepSpan) * 646;
+		const y = (value) => 218 - ((value - minValue) / valueSpan) * 198;
+		const path = values.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(point.step).toFixed(2)} ${y(point.value).toFixed(2)}`).join(' ');
+		chartPath.setAttribute('d', path);
+		chartPoints.replaceChildren(
+			...values.map((point) => {
+				const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+				circle.setAttribute('class', 'chart-point');
+				circle.setAttribute('cx', x(point.step).toFixed(2));
+				circle.setAttribute('cy', y(point.value).toFixed(2));
+				circle.setAttribute('r', '3');
+				return circle;
+			}),
+		);
+		setText('[data-chart-min-step]', `step ${minStep}`);
+		setText('[data-chart-max-step]', `step ${maxStep}`);
+		setText('[data-chart-min-value]', format(minValue));
+		setText('[data-chart-max-value]', format(maxValue));
+		chart?.setAttribute('aria-label', `${metricLabel(metric)} over snapshot steps`);
+	}
+
+	function renderSnapshots(fingerprint) {
+		const head = root.querySelector('[data-snapshot-head]');
+		const body = root.querySelector('[data-snapshot-body]');
+		const headerRow = document.createElement('tr');
+		const stepHead = document.createElement('th');
+		stepHead.textContent = 'Step';
+		stepHead.className = 'num';
+		headerRow.append(stepHead);
+		for (const metric of fingerprint.metric_names) {
+			const th = document.createElement('th');
+			th.textContent = metricLabel(metric);
+			th.className = 'num';
+			headerRow.append(th);
+		}
+		head?.replaceChildren(headerRow);
+		body?.replaceChildren(
+			...fingerprint.snapshots.map((snapshot) => {
+				const row = document.createElement('tr');
+				const step = document.createElement('td');
+				step.textContent = String(snapshot.step);
+				step.className = 'num';
+				row.append(step);
+				for (const metric of fingerprint.metric_names) {
+					const cell = document.createElement('td');
+					cell.textContent = format(snapshot.metrics[metric]);
+					cell.className = 'num';
+					row.append(cell);
+				}
+				return row;
+			}),
+		);
+	}
+
+	function render() {
+		const selected = selectedFingerprint();
+		if (!selected) return;
+		const { entry, full } = selected;
+		const finalSnapshot = full.snapshots.at(-1);
+		const finalMetrics = finalSnapshot?.metrics ?? {};
+		setText('[data-task-kicker]', `${full.task.dataset} / ${full.model.id} / seed ${full.task.seed}`);
+		setText('[data-fingerprint-title]', full.optimizer.name);
+		setText('[data-run-id]', full.run_id);
+		setText('[data-artifact-path]', entry.path);
+		setText('[data-final-step]', finalSnapshot ? String(finalSnapshot.step) : 'n/a');
+		setText('[data-final-loss]', format(finalMetrics.loss));
+		setText('[data-final-directness]', format(finalMetrics.directness));
+		setText('[data-final-path]', format(finalMetrics.path_length));
+		setText('[data-final-displacement]', format(finalMetrics.displacement));
+		setText('[data-final-ratio]', format(finalMetrics.update_grad_norm_ratio));
+		setText('[data-snapshot-count]', String(full.snapshots.length));
+		setText('[data-metric-count]', String(full.metric_names.length));
+		setText('[data-raw-json]', JSON.stringify(full, null, 2));
+		renderMetadata(full);
+		renderMetricOptions(full);
+		renderChart(full);
+		renderSnapshots(full);
+	}
+
+	fingerprintSelect?.addEventListener('change', render);
+	metricSelect?.addEventListener('change', () => {
+		const selected = selectedFingerprint();
+		if (selected) renderChart(selected.full);
+	});
+	render();
+</script>

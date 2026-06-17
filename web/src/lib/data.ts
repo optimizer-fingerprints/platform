@@ -12,47 +12,51 @@ export interface OptimizerConfig {
 
 export interface FingerprintIndexEntry {
 	fingerprint_id: string;
-	schema_version: string;
-	feature_schema_version?: string;
-	world_id: string;
+	schema: 'optimizer_fingerprint';
+	task_id?: string;
 	optimizer: string;
 	optimizer_family?: string;
 	seed: number;
-	feature_count: number;
+	snapshot_count?: number;
 	path: string;
 }
 
-export interface Fingerprint {
+export type MetricValue = number | null;
+
+export interface SnapshotFingerprint {
+	schema: 'optimizer_fingerprint';
 	fingerprint_id: string;
-	schema_version: string;
-	feature_schema_version?: string;
-	feature_names: string[];
-	features: Record<string, number>;
-	raw_vector: number[];
-	normalized_vector: number[];
-	block_weights?: Record<string, number>;
-	probe_config?: Record<string, JsonValue>;
-	checkpoint_steps?: number[];
-	checkpoint_records?: JsonValue[];
-	path_length?: number;
-	displacement?: number;
-	world?: Record<string, JsonValue>;
-	optimizer?: {
-		name: string;
-		family?: string;
-		hparams?: Record<string, JsonValue>;
-		param_groups?: Record<string, JsonValue>;
-		metadata?: Record<string, JsonValue>;
-		config_path?: string;
+	run_id: string;
+	task: {
+		id: string;
+		dataset: string;
+		batch_size: number;
+		seed: number;
+		max_steps: number;
+		snapshot_interval: number;
+		svd_max_dim: number;
 	};
+	model: {
+		id: string;
+	};
+	optimizer: {
+		name: string;
+		family: string;
+		[key: string]: JsonValue;
+	};
+	metric_names: string[];
+	snapshots: {
+		step: number;
+		metrics: Record<string, MetricValue>;
+	}[];
 }
 
 export interface LoadedFingerprint extends FingerprintIndexEntry {
-	full?: Fingerprint;
+	full: SnapshotFingerprint;
 }
 
 export interface FingerprintIndex {
-	schema_version: string;
+	schema: 'fingerprint_index';
 	fingerprint_root: string;
 	fingerprints: FingerprintIndexEntry[];
 }
@@ -169,7 +173,7 @@ export function loadFingerprintIndex(): FingerprintIndex {
 	const path = resolve(webRoot, 'public', 'fingerprints.json');
 	if (!existsSync(path)) {
 		return {
-			schema_version: 'fingerprint_index_v1',
+			schema: 'fingerprint_index',
 			fingerprint_root: 'fingerprints',
 			fingerprints: [],
 		};
@@ -179,10 +183,10 @@ export function loadFingerprintIndex(): FingerprintIndex {
 
 export function loadFingerprints(): LoadedFingerprint[] {
 	const index = loadFingerprintIndex();
-	return index.fingerprints.map((entry) => ({
-		...entry,
-		full: readFingerprint(entry.path),
-	}));
+	return index.fingerprints.flatMap((entry) => {
+		const full = readFingerprint(entry.path);
+		return full ? [{ ...entry, full }] : [];
+	});
 }
 
 export function countFingerprintsByOptimizer(fingerprints: LoadedFingerprint[]): Map<string, number> {
@@ -193,7 +197,32 @@ export function countFingerprintsByOptimizer(fingerprints: LoadedFingerprint[]):
 	return counts;
 }
 
-function readFingerprint(entryPath: string): Fingerprint | undefined {
+export function isSnapshotFingerprint(value: unknown): value is SnapshotFingerprint {
+	if (!value || typeof value !== 'object') {
+		return false;
+	}
+	const candidate = value as Partial<SnapshotFingerprint>;
+	return (
+		candidate.schema === 'optimizer_fingerprint' &&
+		typeof candidate.fingerprint_id === 'string' &&
+		typeof candidate.run_id === 'string' &&
+		typeof candidate.task === 'object' &&
+		typeof candidate.model === 'object' &&
+		typeof candidate.optimizer === 'object' &&
+		Array.isArray(candidate.metric_names) &&
+		Array.isArray(candidate.snapshots)
+	);
+}
+
+export function fingerprintTaskId(fingerprint: LoadedFingerprint): string {
+	return fingerprint.full.task.id;
+}
+
+export function fingerprintSnapshotCount(fingerprint: LoadedFingerprint): number | undefined {
+	return fingerprint.full.snapshots.length;
+}
+
+function readFingerprint(entryPath: string): SnapshotFingerprint | undefined {
 	const candidates = [
 		resolve(repoRoot, entryPath),
 		resolve(webRoot, 'public', entryPath),
@@ -201,7 +230,8 @@ function readFingerprint(entryPath: string): Fingerprint | undefined {
 	];
 	for (const candidate of candidates) {
 		if (existsSync(candidate)) {
-			return JSON.parse(readFileSync(candidate, 'utf8')) as Fingerprint;
+			const fingerprint = JSON.parse(readFileSync(candidate, 'utf8')) as unknown;
+			return isSnapshotFingerprint(fingerprint) ? fingerprint : undefined;
 		}
 	}
 	return undefined;
