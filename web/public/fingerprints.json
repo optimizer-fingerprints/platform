@@ -30,6 +30,16 @@
       "seed": 0,
       "snapshot_count": 12,
       "task_id": "cifar10_resnet18_v1"
+    },
+    {
+      "fingerprint_id": "cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__751bdc1eea",
+      "optimizer": "shampoo_pinv_one_sided",
+      "optimizer_family": "shampoo",
+      "path": "fingerprints/cifar10_resnet18_v1/shampoo_pinv_one_sided/cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__751bdc1eea.json",
+      "schema": "optimizer_fingerprint",
+      "seed": 0,
+      "snapshot_count": 12,
+      "task_id": "cifar10_resnet18_v1"
     }
   ],
   "schema": "fingerprint_index"
