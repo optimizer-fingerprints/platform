@@ -7,7 +7,7 @@
 #SBATCH --qos=standby
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
-#SBATCH --partition=a30
+#SBATCH --partition=a100-40gb
 #SBATCH --mem=50G
 
 cd /home/mangla/fingerprinting
