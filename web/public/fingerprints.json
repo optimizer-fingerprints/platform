@@ -2,45 +2,35 @@
   "fingerprint_root": "fingerprints",
   "fingerprints": [
     {
-      "feature_count": 21,
-      "fingerprint_id": "cifar10_resnet18_v1__adamw__seed0__f2b404be9f",
+      "fingerprint_id": "cifar10_resnet18_v1__adamw__seed0__7faa7b1ee5",
       "optimizer": "adamw",
       "optimizer_family": "adamw",
-      "path": "fingerprints/cifar10_resnet18_v1/adamw/cifar10_resnet18_v1__adamw__seed0__f2b404be9f.json",
-      "schema_version": "optimizer_fingerprint_v1",
+      "path": "fingerprints/cifar10_resnet18_v1/adamw/cifar10_resnet18_v1__adamw__seed0__7faa7b1ee5.json",
+      "schema": "optimizer_fingerprint",
       "seed": 0,
-      "world_id": "cifar10_resnet18_v1"
+      "snapshot_count": 12,
+      "task_id": "cifar10_resnet18_v1"
     },
     {
-      "feature_count": 21,
-      "fingerprint_id": "cifar10_resnet18_v1__muon__seed0__32951fd322",
+      "fingerprint_id": "cifar10_resnet18_v1__muon__seed0__6c854aed37",
       "optimizer": "muon",
       "optimizer_family": "muon",
-      "path": "fingerprints/cifar10_resnet18_v1/muon/cifar10_resnet18_v1__muon__seed0__32951fd322.json",
-      "schema_version": "optimizer_fingerprint_v1",
+      "path": "fingerprints/cifar10_resnet18_v1/muon/cifar10_resnet18_v1__muon__seed0__6c854aed37.json",
+      "schema": "optimizer_fingerprint",
       "seed": 0,
-      "world_id": "cifar10_resnet18_v1"
+      "snapshot_count": 12,
+      "task_id": "cifar10_resnet18_v1"
     },
     {
-      "feature_count": 21,
-      "fingerprint_id": "cifar10_resnet18_v1__shampoo_default__seed0__85ec1d3c29",
+      "fingerprint_id": "cifar10_resnet18_v1__shampoo_default__seed0__37c653b809",
       "optimizer": "shampoo_default",
       "optimizer_family": "shampoo",
-      "path": "fingerprints/cifar10_resnet18_v1/shampoo_default/cifar10_resnet18_v1__shampoo_default__seed0__85ec1d3c29.json",
-      "schema_version": "optimizer_fingerprint_v1",
+      "path": "fingerprints/cifar10_resnet18_v1/shampoo_default/cifar10_resnet18_v1__shampoo_default__seed0__37c653b809.json",
+      "schema": "optimizer_fingerprint",
       "seed": 0,
-      "world_id": "cifar10_resnet18_v1"
-    },
-    {
-      "feature_count": 21,
-      "fingerprint_id": "cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__4a76bf30a5",
-      "optimizer": "shampoo_pinv_one_sided",
-      "optimizer_family": "shampoo",
-      "path": "fingerprints/cifar10_resnet18_v1/shampoo_pinv_one_sided/cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__4a76bf30a5.json",
-      "schema_version": "optimizer_fingerprint_v1",
-      "seed": 0,
-      "world_id": "cifar10_resnet18_v1"
+      "snapshot_count": 12,
+      "task_id": "cifar10_resnet18_v1"
     }
   ],
-  "schema_version": "fingerprint_index_v1"
+  "schema": "fingerprint_index"
 }
