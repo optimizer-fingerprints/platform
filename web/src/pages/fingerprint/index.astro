@@ -1,167 +1,95 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { fingerprintSnapshotCount, fingerprintTaskId, loadFingerprints } from '../../lib/data';
+import { loadFingerprints } from '../../lib/data';
 
-const loadedFingerprints = loadFingerprints();
-const fingerprints = loadedFingerprints.map((entry) => ({
-	entry: {
-		fingerprint_id: entry.fingerprint_id,
-		optimizer: entry.optimizer,
-		optimizer_family: entry.optimizer_family,
-		seed: entry.seed,
-		task_id: fingerprintTaskId(entry),
-		snapshot_count: fingerprintSnapshotCount(entry),
-		path: entry.path,
-	},
-	full: entry.full,
-}));
-
-const metricSections = [
-	{ id: 'training', title: 'Training', metrics: ['loss', 'grad_norm', 'update_norm', 'theta_norm'] },
-	{
-		id: 'trajectory',
-		title: 'Trajectory',
-		metrics: ['path_length', 'displacement', 'directness', 'theta_initial_cos', 'theta_prev_snapshot_cos'],
-	},
-	{
-		id: 'direction',
-		title: 'Direction / scale',
-		metrics: ['update_neg_grad_cos', 'update_prev_update_cos', 'update_grad_norm_ratio', 'update_theta_norm_ratio'],
-	},
-	{
-		id: 'matrix',
-		title: 'Matrix',
-		metrics: [
-			'update_stable_rank',
-			'update_spectral_concentration',
-			'update_singular_value_spread',
-			'update_orthogonality_error',
-			'update_row_norm_cv',
-			'update_col_norm_cv',
-		],
-	},
-	{
-		id: 'elementwise',
-		title: 'Elementwise',
-		metrics: [
-			'update_rms',
-			'update_l1_l2_ratio',
-			'update_linf_l2_ratio',
-			'update_zero_fraction',
-			'update_kurtosis',
-			'update_abs_grad_abs_corr',
-			'update_sign_grad_agreement',
-		],
-	},
-];
+const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 ---
 
 <Layout title="Fingerprint">
-	<section class="fingerprint-shell" aria-label="Fingerprint workspace" data-fingerprint-root>
+	<section class="fingerprint-shell" data-fingerprint-root>
 		{
 			fingerprints.length === 0 ? (
-				<div class="empty">
-					No current-schema fingerprints are available. Regenerate fingerprints with the current
-					<code>optimizer_fingerprint</code> schema and rebuild <code>web/public/fingerprints.json</code>.
-				</div>
+				<div class="empty">No current-schema fingerprints are available.</div>
 			) : (
 				<>
+					<header class="fingerprint-topbar">
+						<div class="run-meta" data-run-meta></div>
+						<div class="field">
+							<label for="fingerprint-select">Fingerprint</label>
+							<select id="fingerprint-select" data-fingerprint-select>
+								{fingerprints.map(({ full }, index) => (
+									<option value={String(index)}>
+										{full.optimizer.name} / {full.task.id} / seed {full.task.seed}
+									</option>
+								))}
+							</select>
+						</div>
+					</header>
+
 					<div class="pane-frame">
 						<div class="pane-inner">
-							<div class="fingerprint-toolbar">
-								<div class="field">
-									<label for="fingerprint-select">Fingerprint</label>
-									<select id="fingerprint-select" data-fingerprint-select>
-										{fingerprints.map(({ full }, index) => (
-											<option value={String(index)}>
-												{full.optimizer.name} / {full.task.id} / seed {full.task.seed} / {full.snapshots.length} snapshots
-											</option>
-										))}
-									</select>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					{metricSections.map((section) => (
-						<div class="pane-frame metric-section-frame">
-							<div class="pane-inner">
-								<details class="fingerprint-section metric-details" open>
-									<summary class="section-title">{section.title} <span>snapshot traces</span></summary>
-									<div class="chart-grid" data-chart-section={section.id}>
-										{section.metrics.map((metric) => (
-											<article class="metric-chart" data-metric={metric}>
-												<header>
-													<h3>{metric.replaceAll('_', ' ')}</h3>
-													<span class="num" data-latest-value>n/a</span>
-													</header>
-													<div class="mini-trace">
-													<svg viewBox="0 0 360 160" role="img">
-														<g class="chart-grid-lines" aria-hidden="true">
-															<line x1="86" y1="16" x2="86" y2="132"></line>
-															<line x1="138" y1="16" x2="138" y2="132"></line>
-															<line x1="190" y1="16" x2="190" y2="132"></line>
-															<line x1="242" y1="16" x2="242" y2="132"></line>
-															<line x1="294" y1="16" x2="294" y2="132"></line>
-															<line x1="34" y1="45" x2="346" y2="45"></line>
-															<line x1="34" y1="74" x2="346" y2="74"></line>
-															<line x1="34" y1="103" x2="346" y2="103"></line>
-														</g>
-														<line x1="34" y1="16" x2="34" y2="132" class="chart-axis"></line>
-														<line x1="34" y1="132" x2="346" y2="132" class="chart-axis"></line>
-														<path class="chart-line" data-chart-path></path>
-														<g data-chart-points></g>
-														<text x="34" y="150" class="chart-label" data-min-step></text>
-														<text x="346" y="150" text-anchor="end" class="chart-label" data-max-step></text>
-														<text x="6" y="20" class="chart-label" data-max-value></text>
-														<text x="6" y="135" class="chart-label" data-min-value></text>
-													</svg>
-												</div>
-											</article>
-										))}
+							<section class="relative-pane">
+								<div class="selector-bar">
+									<h2 class="selector-title">Relative Update Geometry</h2>
+									<div class="selector-controls">
+										<div class="field">
+											<label class="sr-only" for="parameter-set-select">Parameter set</label>
+											<select id="parameter-set-select" data-parameter-set-select>
+												<option value="conv_weights">conv weights</option>
+												<option value="conv_biases">conv biases</option>
+												<option value="batchnorm_weights">batchnorm weights</option>
+												<option value="batchnorm_biases">batchnorm biases</option>
+												<option value="all_weights">all weights</option>
+												<option value="all_biases">all biases</option>
+												<option value="layer1">layer1</option>
+												<option value="layer2">layer2</option>
+												<option value="layer3">layer3</option>
+												<option value="layer4">layer4</option>
+												<option value="downsample">downsample</option>
+												<option value="fc">fc</option>
+												<option value="custom">custom</option>
+											</select>
+										</div>
+										<button type="button" data-custom-edit>Edit custom</button>
+										<div class="set-summary" data-set-summary></div>
 									</div>
-								</details>
-							</div>
-						</div>
-					))}
-
-					<div class="pane-frame">
-						<div class="pane-inner">
-							<section class="fingerprint-section">
-								<h2 class="section-title">Snapshots <span>schema metric order</span></h2>
-								<div class="table-wrap">
-									<table class="snapshot-table">
-										<thead data-snapshot-head></thead>
-										<tbody data-snapshot-body></tbody>
-									</table>
 								</div>
+
+								<div class="chart-stack" data-chart-stack></div>
 							</section>
 						</div>
 					</div>
 
-					<div class="pane-frame">
-						<div class="pane-inner">
-							<details>
-								<summary>Raw fingerprint JSON</summary>
-								<pre data-raw-json></pre>
-							</details>
+					<div class="custom-modal" data-custom-modal aria-hidden="true">
+						<div class="custom-dialog">
+							<header>
+								<h2>Custom Parameters</h2>
+								<button type="button" data-custom-close aria-label="Close custom parameter picker">x</button>
+							</header>
+							<div class="custom-tools">
+								<div class="field">
+									<label for="custom-filter">Filter</label>
+									<input id="custom-filter" type="search" placeholder="conv2, layer3, bias..." data-custom-filter />
+								</div>
+								<div class="custom-actions">
+									<button type="button" data-custom-select-visible>Select visible</button>
+									<button type="button" data-custom-clear>Clear</button>
+									<button type="button" data-custom-apply>Apply</button>
+								</div>
+							</div>
+							<div class="custom-count" data-custom-count></div>
+							<div class="custom-list" data-custom-list></div>
 						</div>
 					</div>
 				</>
 			)
 		}
-
 	</section>
 </Layout>
 
 <style is:global>
 	.fingerprint-shell {
 		box-sizing: border-box;
-		display: grid;
-		gap: 16px;
-		width: 100%;
-		max-width: 100%;
-		min-width: 0;
 		padding: 10px 28px 0;
 	}
 
@@ -171,298 +99,710 @@ const metricSections = [
 		box-sizing: border-box;
 	}
 
-	.fingerprint-shell .pane-frame,
-	.fingerprint-shell .pane-inner,
-	.fingerprint-section,
-	.fingerprint-shell .table-wrap {
-		width: 100%;
-		max-width: 100%;
-		min-width: 0;
-	}
-
-	.fingerprint-shell .pane-frame {
+	.fingerprint-shell .sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
 		overflow: hidden;
-	}
-
-	.fingerprint-shell .empty,
-	.fingerprint-shell code,
-	.fingerprint-shell pre {
-		overflow-wrap: anywhere;
-	}
-
-	.fingerprint-toolbar {
-		display: block;
-	}
-
-	.fingerprint-toolbar > .field {
-		min-width: 0;
-	}
-
-	.fingerprint-section {
-		position: relative;
-	}
-
-	.metric-details {
-		border-top: 0;
-		padding: 0;
-		font-family: inherit;
-	}
-
-	.metric-details > summary.section-title {
-		cursor: pointer;
-		list-style: none;
-		margin-bottom: 14px;
-	}
-
-	.metric-details > summary.section-title::-webkit-details-marker {
-		display: none;
-	}
-
-	.metric-details > summary.section-title::before {
-		content: 'v';
-		color: var(--muted);
-		font-size: 12px;
-	}
-
-	.metric-details:not([open]) > summary.section-title {
-		margin-bottom: 0;
-	}
-
-	.metric-details:not([open]) > summary.section-title::before {
-		content: '>';
-	}
-
-	.chart-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 14px;
-	}
-
-	.metric-chart {
-		min-width: 0;
-		border: 1px solid var(--line);
-		background: var(--paper);
-	}
-
-	.metric-chart header {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 12px;
-		border-bottom: 1px solid var(--line);
-		font-family: var(--sans);
-	}
-
-	.metric-chart h3 {
-		margin: 0;
-		overflow: hidden;
-		color: var(--ink);
-		font-size: 12px;
-		font-weight: 600;
-		text-overflow: ellipsis;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
+		clip: rect(0, 0, 0, 0);
 		white-space: nowrap;
 	}
 
-	.metric-chart header span {
-		flex: 0 0 auto;
+	.fingerprint-topbar {
+		display: flex;
+		gap: 12px;
+		align-items: flex-start;
+		justify-content: space-between;
+		margin-bottom: 12px;
+	}
+
+	.fingerprint-topbar > .field {
+		flex: 0 1 360px;
+		min-width: 260px;
+	}
+
+	.run-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		font-family: var(--sans);
+	}
+
+	.run-meta span {
+		border: 1px solid var(--line);
+		padding: 2px 7px;
+		background: var(--paper);
 		color: var(--muted);
+		font-size: 11px;
+	}
+
+	.relative-pane {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+
+	.selector-bar {
+		display: flex;
+		gap: 14px;
+		align-items: center;
+		justify-content: space-between;
+		border-bottom: 1px solid var(--line);
+		padding: 0 12px 10px;
+	}
+
+	.selector-title {
+		margin: 0;
+		color: var(--ink);
+		font-family: var(--sans);
+		font-size: 20px;
+		font-weight: 600;
+		letter-spacing: 0;
+		line-height: 1.2;
+		white-space: nowrap;
+	}
+
+	.selector-controls {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		justify-content: flex-end;
+		min-width: 0;
+	}
+
+	.selector-bar .field {
+		width: min(300px, 32vw);
+		min-width: 220px;
+	}
+
+	.selector-bar button,
+	.scale-toggle button,
+	.custom-dialog button {
+		min-height: 34px;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		color: var(--ink);
+		padding: 6px 9px;
+		font-family: var(--sans);
+		font-size: 12px;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.scale-toggle button[aria-pressed='true'] {
+		background: var(--accent-soft);
+		font-weight: 600;
+	}
+
+	.set-summary,
+	.chart-note,
+	.custom-count {
+		color: var(--muted);
+		font-family: var(--sans);
 		font-size: 12px;
 	}
 
-	.mini-trace {
-		position: relative;
-		min-height: 190px;
+	.set-summary {
+		white-space: nowrap;
+	}
+
+	.chart-stack {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+
+	.chart-card {
+		flex: 1 1 calc(50% - 6px);
+		min-width: 320px;
 		background: var(--paper);
 	}
 
-	.mini-trace svg {
-		display: block;
+	.chart-card > header {
+		display: flex;
+		gap: 12px;
+		align-items: flex-start;
+		justify-content: space-between;
+		padding: 10px 12px;
+		font-family: var(--sans);
+	}
+
+	.chart-card > header > div:first-child {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.chart-card h3 {
+		margin: 0;
+		font-size: 13px;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	.chart-subtitle {
+		margin-top: 4px;
+		color: var(--muted);
+		font-size: 11px;
+	}
+
+	.scale-toggle {
+		display: inline-flex;
+		gap: 4px;
+	}
+
+	.main-chart {
+		height: 220px;
+		min-height: 220px;
+	}
+
+	.main-chart > div {
 		width: 100%;
-		min-height: 190px;
+		height: 100%;
 	}
 
-	.chart-axis {
-		stroke: var(--line-strong);
-		stroke-width: 1;
+	.custom-modal {
+		position: fixed;
+		inset: 0;
+		z-index: 30;
+		display: none;
+		background: rgb(31 27 22 / 0.25);
 	}
 
-	.chart-grid-lines line {
-		stroke: var(--line);
-		stroke-width: 1;
+	.custom-modal[aria-hidden='false'] {
+		display: block;
 	}
 
-	.chart-line {
-		fill: none;
-		stroke: var(--accent);
-		stroke-width: 2;
+	.custom-dialog {
+		position: absolute;
+		top: 40px;
+		left: 50%;
+		width: min(720px, calc(100vw - 32px));
+		max-height: calc(100vh - 80px);
+		overflow: auto;
+		transform: translateX(-50%);
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		padding: 16px;
 	}
 
-	.chart-point {
-		fill: var(--accent);
+	.custom-dialog > header {
+		display: flex;
+		justify-content: space-between;
+		gap: 16px;
+		border-bottom: 1px solid var(--line);
+		padding-bottom: 10px;
 	}
 
-	.chart-label {
-		fill: var(--muted);
-		font-family: var(--mono);
-		font-size: 9px;
+	.custom-dialog h2 {
+		margin: 0;
+		font-family: var(--sans);
+		font-size: 13px;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
 	}
 
-	.snapshot-table {
-		min-width: 980px;
+	.custom-tools {
+		display: flex;
+		gap: 12px;
+		align-items: flex-end;
+		margin-top: 12px;
 	}
 
-	.unsupported-table {
-		min-width: 760px;
-		table-layout: fixed;
+	.custom-tools .field {
+		flex: 1 1 220px;
+		min-width: 220px;
 	}
 
-	.unsupported-table th:nth-child(1),
-	.unsupported-table th:nth-child(6) {
-		width: 30%;
+	.custom-actions {
+		display: flex;
+		gap: 8px;
 	}
 
-	.wrap-cell {
-		white-space: normal;
+	.custom-list {
+		display: flex;
+		flex-wrap: wrap;
+		max-height: 460px;
+		overflow: auto;
+		border: 1px solid var(--line);
+		margin-top: 10px;
+		font-family: var(--sans);
+		font-size: 12px;
+	}
+
+	.custom-option {
+		display: flex;
+		flex: 1 1 50%;
+		gap: 7px;
+		align-items: flex-start;
+		min-width: min(320px, 100%);
+		border-bottom: 1px solid var(--line);
+		padding: 7px;
+		cursor: pointer;
+	}
+
+	.custom-option input {
+		flex: 0 0 auto;
+	}
+
+	.custom-option span {
 		overflow-wrap: anywhere;
+		font-family: var(--mono);
+		line-height: 1.3;
 	}
 
 	@media (max-width: 760px) {
-		.fingerprint-shell {
-			padding-inline: 16px;
+		.fingerprint-topbar,
+		.selector-bar,
+		.custom-tools {
+			align-items: stretch;
+			flex-direction: column;
 		}
 
-		.chart-grid {
-			grid-template-columns: 1fr;
+		.fingerprint-topbar > .field,
+		.selector-bar .field,
+		.chart-card,
+		.custom-option {
+			width: 100%;
+			min-width: 0;
+		}
+
+		.selector-title {
+			padding-bottom: 0;
+		}
+
+		.selector-controls {
+			align-items: stretch;
+			flex-wrap: wrap;
+			justify-content: flex-start;
 		}
 	}
 </style>
 
-<script define:vars={{ fingerprints }}>
+<script id="fingerprint-data" type="application/json" set:html={JSON.stringify(fingerprints)}></script>
+
+<script>
+	import { CustomChart, LineChart } from 'echarts/charts';
+	import { GridComponent, TooltipComponent } from 'echarts/components';
+	import * as echarts from 'echarts/core';
+	import { SVGRenderer } from 'echarts/renderers';
+
+	echarts.use([LineChart, CustomChart, GridComponent, TooltipComponent, SVGRenderer]);
+
+	const fingerprints = JSON.parse(document.getElementById('fingerprint-data').textContent);
 	const root = document.querySelector('[data-fingerprint-root]');
 	const fingerprintSelect = root?.querySelector('[data-fingerprint-select]');
+	const setSelect = root?.querySelector('[data-parameter-set-select]');
+	const customEdit = root?.querySelector('[data-custom-edit]');
+	const customModal = root?.querySelector('[data-custom-modal]');
+	const customClose = root?.querySelector('[data-custom-close]');
+	const customFilter = root?.querySelector('[data-custom-filter]');
+	const customList = root?.querySelector('[data-custom-list]');
+	const customSelectVisible = root?.querySelector('[data-custom-select-visible]');
+	const customClear = root?.querySelector('[data-custom-clear]');
+	const customApply = root?.querySelector('[data-custom-apply]');
+	const customNames = new Set();
+	const ratioScales = {
+		update_grad_norm_ratio: 'log',
+		update_theta_norm_ratio: 'log',
+	};
+	const chartInstances = new Map();
 
+	const metricInfo = {
+		update_neg_grad_cos: {
+			title: 'Gradient alignment',
+			subtitle: 'mean cos(update, -grad) · update_neg_grad_cos',
+		},
+		update_prev_update_cos: {
+			title: 'Update consistency',
+			subtitle: 'mean cos(update_t, update_t-1) · update_prev_update_cos',
+		},
+		update_grad_norm_ratio: {
+			title: 'Update / gradient',
+			subtitle: 'mean ||update|| / ||grad|| · update_grad_norm_ratio',
+		},
+		update_theta_norm_ratio: {
+			title: 'Update / weights',
+			subtitle: 'mean ||update|| / ||theta|| · update_theta_norm_ratio',
+		},
+	};
+	const metrics = Object.keys(metricInfo);
+	const ratioMetrics = new Set(['update_grad_norm_ratio', 'update_theta_norm_ratio']);
 	const format = (value) => {
 		if (!Number.isFinite(value)) return 'n/a';
 		const abs = Math.abs(value);
 		if (abs !== 0 && (abs < 0.01 || abs >= 10000)) return value.toExponential(2);
 		return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
 	};
-	const formatFigure = (value) => {
-		if (!Number.isFinite(value)) return 'n/a';
-		const abs = Math.abs(value);
-		if (abs !== 0 && (abs < 0.01 || abs >= 1000)) return value.toExponential(2);
-		return value.toLocaleString('en-US', {
-			maximumSignificantDigits: 4,
-			useGrouping: false,
-		});
-	};
-
-	const metricLabel = (name) => name.replaceAll('_', ' ');
-	function selectedFingerprint() {
-		return fingerprints[Number(fingerprintSelect?.value ?? 0)];
-	}
-
-	function setText(selector, value) {
-		const element = root?.querySelector(selector);
-		if (element) element.textContent = value;
-	}
-
-	function renderAllCharts(fingerprint) {
-		for (const chart of root.querySelectorAll('[data-metric]')) {
-			renderMetricChart(chart, fingerprint);
-		}
-	}
-
-	function renderMetricChart(chart, fingerprint) {
-		const metric = chart.dataset.metric;
-		const path = chart.querySelector('[data-chart-path]');
-		const points = chart.querySelector('[data-chart-points]');
-		const latest = chart.querySelector('[data-latest-value]');
-		const values = fingerprint.snapshots
-			.map((snapshot) => ({ step: snapshot.step, value: snapshot.metrics[metric] }))
-			.filter((point) => Number.isFinite(point.value));
-
-		latest.textContent = values.length ? formatFigure(values.at(-1).value) : 'n/a';
-		if (!path || !points || values.length === 0) {
-			if (path) path.setAttribute('d', '');
-			points?.replaceChildren();
-			return;
-		}
-
-		const minStep = Math.min(...values.map((point) => point.step));
-		const maxStep = Math.max(...values.map((point) => point.step));
-		const minValue = Math.min(...values.map((point) => point.value));
-		const maxValue = Math.max(...values.map((point) => point.value));
-		const stepSpan = Math.max(maxStep - minStep, 1);
-		const valueSpan = Math.max(maxValue - minValue, 1e-20);
-		const x = (step) => 34 + ((step - minStep) / stepSpan) * 312;
-		const y = (value) => 132 - ((value - minValue) / valueSpan) * 116;
-		path.setAttribute(
-			'd',
-			values.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(point.step).toFixed(2)} ${y(point.value).toFixed(2)}`).join(' '),
-		);
-		points.replaceChildren(
-			...values.map((point) => {
-				const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-				circle.setAttribute('class', 'chart-point');
-				circle.setAttribute('cx', x(point.step).toFixed(2));
-				circle.setAttribute('cy', y(point.value).toFixed(2));
-				circle.setAttribute('r', '2.5');
-				return circle;
-			}),
-		);
-		chart.querySelector('[data-min-step]').textContent = String(minStep);
-		chart.querySelector('[data-max-step]').textContent = String(maxStep);
-		chart.querySelector('[data-min-value]').textContent = formatFigure(minValue);
-		chart.querySelector('[data-max-value]').textContent = formatFigure(maxValue);
-		chart.querySelector('svg')?.setAttribute('aria-label', `${metricLabel(metric)} over snapshot steps`);
-	}
-
-	function renderSnapshots(fingerprint) {
-		const head = root.querySelector('[data-snapshot-head]');
-		const body = root.querySelector('[data-snapshot-body]');
-		const headerRow = document.createElement('tr');
-		const stepHead = document.createElement('th');
-		stepHead.textContent = 'Step';
-		stepHead.className = 'num';
-		headerRow.append(stepHead);
-		for (const metric of fingerprint.metric_names) {
-			const th = document.createElement('th');
-			th.textContent = metricLabel(metric);
-			th.className = 'num';
-			headerRow.append(th);
-		}
-		head?.replaceChildren(headerRow);
-		body?.replaceChildren(
-			...fingerprint.snapshots.map((snapshot) => {
-				const row = document.createElement('tr');
-				const step = document.createElement('td');
-				step.textContent = String(snapshot.step);
-				step.className = 'num';
-				row.append(step);
-				for (const metric of fingerprint.metric_names) {
-					const cell = document.createElement('td');
-					cell.textContent = format(snapshot.metrics[metric]);
-					cell.className = 'num';
-					row.append(cell);
-				}
-				return row;
-			}),
-		);
-	}
+	const selectedFingerprint = () => fingerprints[Number(fingerprintSelect?.value ?? 0)]?.full;
 
 	function render() {
-		const selected = selectedFingerprint();
-		if (!selected) return;
-		const { full } = selected;
-		setText('[data-raw-json]', JSON.stringify(full, null, 2));
-		renderAllCharts(full);
-		renderSnapshots(full);
+		const fingerprint = selectedFingerprint();
+		if (!fingerprint) return;
+		ensureCustomSelection(fingerprint);
+		renderMeta(fingerprint);
+		renderSetSummary(fingerprint);
+		renderCharts(fingerprint);
 	}
 
-	fingerprintSelect?.addEventListener('change', render);
+	function renderMeta(fingerprint) {
+		root.querySelector('[data-run-meta]').replaceChildren(
+			...[
+				fingerprint.optimizer.name,
+				fingerprint.task.id,
+				fingerprint.model.id,
+				`seed ${fingerprint.task.seed}`,
+				`${fingerprint.snapshots.length} snapshots`,
+				`${fingerprint.snapshots[0].parameters.length} params`,
+			].map((text) => {
+				const span = document.createElement('span');
+				span.textContent = text;
+				return span;
+			}),
+		);
+	}
+
+	function ensureCustomSelection(fingerprint) {
+		if (customNames.size > 0) return;
+		for (const name of depthProbeNames(fingerprint)) customNames.add(name);
+	}
+
+	function depthProbeNames(fingerprint) {
+		const available = new Set(fingerprint.snapshots[0].parameters.map((parameter) => parameter.name));
+		return ['conv1.weight', 'layer1.0.conv1.weight', 'layer2.0.conv1.weight', 'layer3.0.conv1.weight', 'layer4.0.conv1.weight', 'fc.weight'].filter(
+			(name) => available.has(name),
+		);
+	}
+
+	function selectedParameters(fingerprint) {
+		const params = fingerprint.snapshots[0].parameters;
+		const set = setSelect?.value ?? 'conv_weights';
+		if (set === 'custom') return params.filter((parameter) => customNames.has(parameter.name));
+		const predicates = {
+			conv_weights: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.weight'),
+			conv_biases: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.bias'),
+			batchnorm_weights: (parameter) => parameter.name.includes('bn') && parameter.name.endsWith('.weight'),
+			batchnorm_biases: (parameter) => parameter.name.includes('bn') && parameter.name.endsWith('.bias'),
+			all_weights: (parameter) => parameter.name.endsWith('.weight'),
+			all_biases: (parameter) => parameter.name.endsWith('.bias'),
+			layer1: (parameter) => parameter.name.startsWith('layer1'),
+			layer2: (parameter) => parameter.name.startsWith('layer2'),
+			layer3: (parameter) => parameter.name.startsWith('layer3'),
+			layer4: (parameter) => parameter.name.startsWith('layer4'),
+			downsample: (parameter) => parameter.name.includes('downsample'),
+			fc: (parameter) => parameter.name.startsWith('fc'),
+		};
+		return params.filter(predicates[set] ?? (() => false));
+	}
+
+	function renderSetSummary(fingerprint) {
+		const params = selectedParameters(fingerprint);
+		root.querySelector('[data-set-summary]').textContent = `Averaging ${params.length} parameter${params.length === 1 ? '' : 's'}.`;
+	}
+
+	function averagedSeries(fingerprint, metric) {
+		const names = new Set(selectedParameters(fingerprint).map((parameter) => parameter.name));
+		return fingerprint.snapshots.map((snapshot) => {
+			const values = snapshot.parameters
+				.filter((parameter) => names.has(parameter.name))
+				.map((parameter) => parameter.metrics[metric])
+				.filter((value) => Number.isFinite(value));
+			const mean = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+			const variance = values.length ? values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length : 0;
+			const std = Math.sqrt(variance);
+			return {
+				step: snapshot.step,
+				value: mean,
+				low: values.length ? mean - std : null,
+				high: values.length ? mean + std : null,
+				count: values.length,
+			};
+		});
+	}
+
+	function renderCharts(fingerprint) {
+		for (const chart of chartInstances.values()) chart.dispose();
+		chartInstances.clear();
+		const chartSpecs = metrics.map((metric) => {
+			const article = document.createElement('article');
+			article.className = 'chart-card';
+			const header = document.createElement('header');
+			const titleWrap = document.createElement('div');
+				const title = document.createElement('h3');
+				title.textContent = metricInfo[metric].title;
+				const subtitle = document.createElement('div');
+				subtitle.className = 'chart-subtitle';
+				subtitle.textContent = metricInfo[metric].subtitle;
+			titleWrap.append(title, subtitle);
+			header.append(titleWrap);
+			if (ratioMetrics.has(metric)) header.append(makeScaleToggle(metric));
+			const host = document.createElement('div');
+			host.className = 'main-chart';
+			const chartRoot = document.createElement('div');
+			host.append(chartRoot);
+			const note = document.createElement('div');
+			note.className = 'chart-note';
+			article.append(header, host, note);
+			return { article, chartRoot, note, metric };
+		});
+		root.querySelector('[data-chart-stack]').replaceChildren(...chartSpecs.map((spec) => spec.article));
+		for (const spec of chartSpecs) {
+			renderLineChart(spec.chartRoot, spec.note, averagedSeries(fingerprint, spec.metric), spec.metric);
+		}
+	}
+
+	function makeScaleToggle(metric) {
+		const wrap = document.createElement('div');
+		wrap.className = 'scale-toggle';
+		for (const scale of ['log', 'linear']) {
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.textContent = scale;
+			button.setAttribute('aria-pressed', String(ratioScales[metric] === scale));
+			button.addEventListener('click', () => {
+				ratioScales[metric] = scale;
+				const fingerprint = selectedFingerprint();
+				if (fingerprint) renderCharts(fingerprint);
+			});
+			wrap.append(button);
+		}
+		return wrap;
+	}
+
+	function renderLineChart(host, note, points, metric) {
+		const cosineMetric = metric === 'update_neg_grad_cos' || metric === 'update_prev_update_cos';
+		const logScale = ratioMetrics.has(metric) && ratioScales[metric] === 'log';
+		const transformed = points
+			.map((point) => ({
+				step: point.step,
+				rawValue: point.value,
+				value: logScale && Number.isFinite(point.value) && point.value > 0 ? Math.log10(point.value) : point.value,
+				low:
+					logScale && Number.isFinite(point.low) && point.low > 0
+						? Math.log10(point.low)
+						: !logScale
+							? point.low
+							: null,
+				high:
+					logScale && Number.isFinite(point.high) && point.high > 0
+						? Math.log10(point.high)
+						: !logScale
+							? point.high
+							: null,
+				count: point.count,
+			}))
+			.filter((point) => Number.isFinite(point.value) && (!logScale || point.rawValue > 0));
+		const missing = points.filter((point) => !point.count).length;
+		note.textContent = missing ? `${missing} snapshot${missing === 1 ? '' : 's'} had no finite values for this group and metric.` : '';
+		const chart = echarts.init(host, null, { renderer: 'svg' });
+		chartInstances.set(host, chart);
+		const steps = transformed.map((point) => point.step);
+		const xMin = steps.length ? Math.min(...steps) : 0;
+		const xMax = steps.length ? Math.max(...steps) : 1;
+		const xInterval = Math.max(Math.round((xMax - xMin) / 300) * 100, 100);
+		const meanData = transformed.map((point) => [point.step, point.value, point.rawValue, point.count]);
+		const bandPoints = transformed.filter((point) => Number.isFinite(point.low) && Number.isFinite(point.high));
+		const bandValues = transformed.flatMap((point) => [point.low, point.high]).filter((value) => Number.isFinite(value));
+		const dataMax = transformed.length ? Math.max(...transformed.map((point) => point.value), ...bandValues) : 1;
+		const dataMin = transformed.length ? Math.min(...transformed.map((point) => point.value), ...bandValues) : 0;
+		const yMin = cosineMetric ? -1.05 : logScale ? Math.floor(dataMin) : 0;
+		const yMax = cosineMetric
+			? 1.05
+			: logScale
+				? Math.max(Math.ceil(dataMax + 0.12), Math.floor(dataMin) + 1)
+				: Math.max(dataMax * 1.18, dataMax + 1e-12);
+		chart.setOption({
+			animation: false,
+			color: ['#7b2d26'],
+			grid: { left: 54, right: 16, top: 24, bottom: 34 },
+			tooltip: {
+				trigger: 'axis',
+				confine: true,
+				axisPointer: { type: 'line', lineStyle: { color: '#bfb4a4' } },
+				formatter: (items) => {
+					const mean = items.find((item) => item.seriesName === 'mean');
+					if (!mean) return '';
+					const raw = mean.data?.[2] ?? mean.data?.[1];
+					const count = mean.data?.[3];
+					return `step ${mean.data[0]}<br/>mean: ${format(raw)}${count ? `<br/>n: ${count}` : ''}`;
+				},
+			},
+
+			xAxis: {
+				type: 'value',
+				min: xMin,
+				max: xMax,
+				interval: xInterval,
+				splitNumber: 2,
+				axisLine: { show: false },
+				axisTick: { show: false },
+				axisLabel: {
+					color: '#6f675c',
+					fontFamily: 'IBM Plex Mono, monospace',
+					hideOverlap: true,
+					formatter: (value) =>
+						value > 0 && value % xInterval === 0 ? String(Math.round(value)) : '',
+				},
+				splitLine: {
+					show: true,
+					lineStyle: { color: 'rgba(191, 180, 164, 0.35)', width: 1 },
+				},
+			},
+
+			yAxis: {
+				type: 'value',
+				min: yMin,
+				max: yMax,
+				interval: cosineMetric ? 1 : undefined,
+				splitNumber: 2,
+				boundaryGap: false,
+
+				axisLine: { show: false },
+				axisTick: { show: false },
+				axisLabel: {
+					color: '#6f675c',
+					fontFamily: 'IBM Plex Mono, monospace',
+					hideOverlap: true,
+					formatter: (value) => axisLabel(value, { logScale, cosineMetric }),
+				},
+				splitLine: {
+					show: true,
+					lineStyle: { color: 'rgba(191, 180, 164, 0.35)', width: 1 },
+				},
+			},
+
+			series: [
+				...(bandPoints.length > 1
+					? [
+							{
+								name: 'mean ± std',
+								type: 'custom',
+								data: [0],
+								renderItem: (_params, api) => {
+									const upper = bandPoints.map((point) => api.coord([point.step, point.high]));
+									const lower = [...bandPoints].reverse().map((point) => api.coord([point.step, point.low]));
+									return {
+										type: 'polygon',
+										shape: { points: [...upper, ...lower] },
+										style: { fill: '#7b2d26', opacity: 0.14 },
+									};
+								},
+								silent: true,
+								z: 1,
+							},
+						]
+					: []),
+
+				{
+					name: 'mean',
+					type: 'line',
+					data: meanData,
+					symbol: 'circle',
+					symbolSize: 4,
+					lineStyle: { color: '#7b2d26', width: 2 },
+					itemStyle: { color: '#7b2d26' },
+					z: 2,
+				},
+			],
+		});
+	}
+
+	function axisLabel(value, { logScale, cosineMetric }) {
+		if (cosineMetric) {
+			for (const tick of [-1, 0, 1]) {
+				if (Math.abs(value - tick) < 0.08) return formatSigFig(tick);
+			}
+			return '';
+		}
+		if (logScale) return formatSigFig(10 ** value);
+		return formatSigFig(value);
+	}
+
+	function formatSigFig(value) {
+		if (!Number.isFinite(value)) return 'n/a';
+		if (value === 0) return '0';
+		const abs = Math.abs(value);
+		if (abs < 0.01 || abs >= 10000) return value.toExponential(1);
+		return Number(value.toPrecision(2)).toString();
+	}
+
+	function openCustomModal() {
+		setSelect.value = 'custom';
+		renderCustomList();
+		customModal.setAttribute('aria-hidden', 'false');
+	}
+
+	function closeCustomModal() {
+		customModal.setAttribute('aria-hidden', 'true');
+	}
+
+	function visibleCustomParameters() {
+		const fingerprint = selectedFingerprint();
+		if (!fingerprint) return [];
+		const filter = String(customFilter?.value ?? '').trim().toLowerCase();
+		return fingerprint.snapshots[0].parameters.filter((parameter) => !filter || parameter.name.toLowerCase().includes(filter));
+	}
+
+	function renderCustomList() {
+		const fingerprint = selectedFingerprint();
+		if (!fingerprint) return;
+		const visible = visibleCustomParameters();
+		customList.replaceChildren(
+			...visible.map((parameter) => {
+				const label = document.createElement('label');
+				label.className = 'custom-option';
+				const checkbox = document.createElement('input');
+				checkbox.type = 'checkbox';
+				checkbox.value = parameter.name;
+				checkbox.checked = customNames.has(parameter.name);
+				checkbox.addEventListener('change', () => {
+					if (checkbox.checked) customNames.add(parameter.name);
+					else customNames.delete(parameter.name);
+					renderCustomCount();
+				});
+				const span = document.createElement('span');
+				span.textContent = parameter.name;
+				label.append(checkbox, span);
+				return label;
+			}),
+		);
+		renderCustomCount();
+	}
+
+	function renderCustomCount() {
+		const fingerprint = selectedFingerprint();
+		if (!fingerprint) return;
+		root.querySelector('[data-custom-count]').textContent =
+			`${customNames.size} selected / ${visibleCustomParameters().length} visible / ${fingerprint.snapshots[0].parameters.length} total`;
+	}
+
+	fingerprintSelect?.addEventListener('change', () => {
+		customNames.clear();
+		render();
+	});
+	setSelect?.addEventListener('change', () => {
+		if (setSelect.value === 'custom') openCustomModal();
+		render();
+	});
+	customEdit?.addEventListener('click', openCustomModal);
+	customClose?.addEventListener('click', closeCustomModal);
+	customModal?.addEventListener('click', (event) => {
+		if (event.target === customModal) closeCustomModal();
+	});
+	customFilter?.addEventListener('input', renderCustomList);
+	customSelectVisible?.addEventListener('click', () => {
+		for (const parameter of visibleCustomParameters()) customNames.add(parameter.name);
+		renderCustomList();
+	});
+	customClear?.addEventListener('click', () => {
+		customNames.clear();
+		renderCustomList();
+	});
+	customApply?.addEventListener('click', () => {
+		closeCustomModal();
+		render();
+	});
+	window.addEventListener('resize', () => {
+		for (const chart of chartInstances.values()) chart.resize();
+	});
 	render();
 </script>
