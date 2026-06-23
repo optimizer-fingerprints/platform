@@ -12,6 +12,7 @@ web/node_modules/
 web/triage/
 web/.compiler/
 web/dist/
+web/public/traces
 web/temp/
 web/*.tsbuildinfo
 web/.DS_Store
