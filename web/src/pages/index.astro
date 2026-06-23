@@ -1338,19 +1338,22 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 	});
 
 	async function initialize() {
+		const content = root.querySelector('[data-compare-content]');
 		try {
 			manifestEntries = await loadTraceManifest(manifestUrl);
 		} catch (error) {
+			content.hidden = false;
 			showLoadError(error instanceof Error ? error.message : String(error));
 			return;
 		}
 		if (!manifestEntries.length) {
+			content.hidden = false;
 			showLoadError('No NanoGPT traces are available.');
 			return;
 		}
 		optimizerNames = [...new Set(manifestEntries.map((entry) => entry.title))].sort();
 		selectedOptimizerSlots.push(...optimizerNames.slice(0, Math.min(2, optimizerNames.length)));
-		root.querySelector('[data-compare-content]').hidden = false;
+		content.hidden = false;
 		renderControls();
 		await render();
 	}
