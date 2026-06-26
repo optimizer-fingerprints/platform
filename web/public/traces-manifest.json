@@ -190,6 +190,15 @@
       "trace_url": "https://data.optimizers.space/traces/20260513_shampoo_1_4_power-806ac55a46e64c1f86c9f87f278b966a.json"
     },
     {
+      "id": "20260517_ortho-ef007b929bb64efdb5cb2dfae999b1b1",
+      "title": "#22 Ortho",
+      "description": "Muon with 12 Newton-Schulz orthogonalization iterations, zero Muon momentum, lr=.03, wd=.015, and a long cooldown",
+      "record_number": 22,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260517_ortho",
+      "trace_details": "20260517_ortho · AdamW + Muon · 8,500 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260517_ortho-ef007b929bb64efdb5cb2dfae999b1b1.json"
+    },
+    {
       "id": "20260508_muown-39939a1ae20647af90f960d44d5119ba",
       "title": "#23 Muown",
       "description": "Muown: Muon with integrated row-norm control, direction_scale=.2, PowerCool, and a V-norm schedule",

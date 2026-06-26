@@ -104,6 +104,11 @@
     "description": "Shampoo with lr=.0015, wd=.2, betas=(.9, .95), precondition_frequency=5, and matrix power=-1/4",
     "log_path": "results/20260513_shampoo_1_4_power/503575c5-6dde-425a-b461-2df4d99db974.txt"
   },
+  "20260517_ortho": {
+    "number": 22,
+    "description": "Muon with 12 Newton-Schulz orthogonalization iterations, zero Muon momentum, lr=.03, wd=.015, and a long cooldown",
+    "log_path": "results/20260517_ortho"
+  },
   "20260508_muown": {
     "number": 23,
     "description": "Muown: Muon with integrated row-norm control, direction_scale=.2, PowerCool, and a V-norm schedule",
